@@ -2,12 +2,18 @@ import io
 from PIL import Image
 from selenium import webdriver
 import chromedriver_binary
-import twitter
+import json, config
+import tweepy
+from requests_oauthlib import OAuth1Session
 
-CONSUMER_KEY  = 'YOUR_CONSUMER_KEY'
-CONSUMER_SECRET_KEY = 'YOUR_CONSUMER_SECRET_KEY'
-ACCESS_TOKEN        = 'YOUR_ACCESS_TOKEN'
-ACCESS_TOKEN_SECRET = 'YOUR_ACCESS_TOKEN_SECRET'
+#configに入れてね！
+CK = config.CONSUMER_KEY
+CS = config.CONSUMER_SECRET
+AT = config.ACCESS_TOKEN
+ATS = config.ACCESS_TOKEN_SECRET
+auth = tweepy.OAuthHandler(CK, CS)
+auth.set_access_token(AT, ATS)
+api = tweepy.API(auth)
 
 def fetch_rate_graph(user):
     driver=webdriver.Chrome()
@@ -29,20 +35,27 @@ def fetch_rating(user):
     driver=webdriver.Chrome()
     url="https://atcoder.jp/users/{:s}".format(user)
     driver.get(url)
-    rating=driver.find_elements_by_class_name('user-green')[1].text
+    rate=int(driver.find_elements_by_class_name('user-green')[1].text)
     driver.close()
-    return rating
+    return rate
 
 def update_header(user,filename):
-    pass
+    api.update_profile_banner(filename)
 
-def update_bio(user,rating):
-    pass
+def update_bio(user,rate):
+    color=['灰','茶','緑','水','青','黄','橙','赤']
+    api.update_profile(
+        'まる',
+        'https://atcoder.jp/users/maru65536',
+        'う　し　た　ぷ　に　き　あ　王　国　笑',
+        '男もすなる競プロといふものを男もしてみむとてするなり。'
+        +'Atcoder'+color[rate//400]+'('+str(rate)+')')
+    
 
 def update_twitter(atcoder_username,twitter_username):
     filename="img/rate_graph.png"
     graph_edit_and_save(fetch_rate_graph(atcoder_username))
     update_header(twitter_username,filename)
-    update_bio(twitter_username,fetch_rating)
+    update_bio(twitter_username,fetch_rating(atcoder_username))
 
 update_twitter('maru65536','maru65536_green')
