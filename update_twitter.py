@@ -6,11 +6,12 @@ import json, config
 import tweepy
 from requests_oauthlib import OAuth1Session
 
-#configに入れてね！
+#config.pyに入れてね！
 CK = config.CONSUMER_KEY
 CS = config.CONSUMER_SECRET
 AT = config.ACCESS_TOKEN
 ATS = config.ACCESS_TOKEN_SECRET
+
 auth = tweepy.OAuthHandler(CK, CS)
 auth.set_access_token(AT, ATS)
 api = tweepy.API(auth)
