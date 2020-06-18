@@ -45,14 +45,7 @@ async def loop():
         for person in users:
             user = client.get_user(person[0])
             if scraping(person[1])==0:
-                print('出力！')
                 await channel.send(user.mention+' AtCoderやれ')  
 
-@client.event
-async def on_message(message):
-    if message.content.endswith("つらい"):
-        if client.user != message.author:
-            m2 = "ぎゅーっ"
-            await message.channel.send(m2)
 # Botの起動とDiscordサーバーへの接続
 client.run(token)
