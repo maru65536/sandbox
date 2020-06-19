@@ -2,6 +2,7 @@ import discord
 from discord.ext import tasks
 import time
 import datetime
+import requests
 from selenium import webdriver
 import chromedriver_binary
 
@@ -18,22 +19,15 @@ users=[
 
 client = discord.Client()
 
-#AtCoderIDを受け取って、今日ACした問題数を返す関数
-def scraping(id):
-    options = webdriver.ChromeOptions()
-    options.add_argument('--headless')
-    driver = webdriver.Chrome(options=options)
-    driver.get('https://kenkoooo.com/atcoder/#/user/{}'.format(id))
-    time.sleep(3)
-    ACdate=driver.find_elements_by_class_name('text-muted')[6].text
-    driver.quit()
-    ACY,ACM,ACD=int(ACdate[9:13]),int(ACdate[14:16]),int(ACdate[17:19])
-    Nowdate=datetime.datetime.now()
-    NY,NM,ND=Nowdate.year,Nowdate.month,Nowdate.day
-    if ACY!=NY or ACM!=NM or ACD!=ND:
-        return False
-    else:
-        return True
+def ACProblems(id):
+    epochs=int(datetime.datetime.now().timestamp()-86400)
+    AClist=[]
+    url="https://kenkoooo.com/atcoder/atcoder-api/results?user={}".format(id)
+    result=requests.get(url).json()
+    for dic in result:
+        if dic['epoch_second']>=epochs:
+            AClist.append(dic["problem_id"])
+    return AClist
 
 #起動時
 @client.event
@@ -49,8 +43,13 @@ async def loop():
         channel = client.get_channel(channel_id)
         for person in users:
             user = client.get_user(person[0])
-            if scraping(person[1])==0:
-                await channel.send(user.mention+' AtCoderやれ')  
+            AC=ACProblems(person[1])
+            if len(AC)==0:
+                await channel.send(user.mention+' AtCoderやれ')
+            else:
+                await channel.send(user.name+'は以下の{}問解きました、えらい！'.format(len(AC)))
+                for Problem in AC:
+                    await channel.send(Problem)
 
 # Botの起動とDiscordサーバーへの接続
 client.run(token)
