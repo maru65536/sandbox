@@ -6,10 +6,15 @@ from selenium import webdriver
 import chromedriver_binary
 
 # Botのアクセストークン、使用するチャンネルID、ユーザーリスト
-token='hoge'
-channel_id='huga'
+token='NzEyMTYzMzU4Mjg3MzMxNDA5.XsNkqw.eUKp3MB20utMrDoPvzBbQG6n858'
+channel_id=723157402387611748
 #[DiscordID,AtCoderID]で指定。手で追加
-users=[['Arice','Bob']]
+users=[
+    [414689564318498816,'maru65536'],
+    [640616185137725453,'irisviel'],
+    [488978370164555776,'potex59049'],
+    [462862915209527298,'yi7242']
+    ]
 
 client = discord.Client()
 
@@ -40,7 +45,7 @@ async def on_ready():
 @tasks.loop(seconds=60)
 async def loop():
     now = datetime.datetime.now().strftime('%H:%M')
-    if now == '20:00':
+    if now == '22:00':
         channel = client.get_channel(channel_id)
         for person in users:
             user = client.get_user(person[0])
