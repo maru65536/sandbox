@@ -7,7 +7,7 @@ from selenium import webdriver
 import chromedriver_binary
 
 # Botのアクセストークン、使用するチャンネルID、ユーザーリスト
-token='hoge and fuga'
+token='hoge and huga'
 channel_id=723157402387611748
 #[DiscordID,AtCoderID]で指定。手で追加
 users=[
@@ -64,7 +64,7 @@ async def loop():
             AC=ACProblems(person[1],79200)
             if len(AC)==1:
                 await channel.send(user.mention+' AtCoderやれ')
-    elif now == '00:00':
+    elif now == '00:39':
         channel = client.get_channel(channel_id)
         for person in users:
             user = client.get_user(person[0])
@@ -74,7 +74,7 @@ async def loop():
             else:
                 await channel.send(user.name+'は以下の{}問を解きました、えらい！'.format(len(AC)-1))
                 for Problem in AC:
-                    if Problem==-1:
+                    if type(Problem) is int:
                         await channel.send('max_diff:'+(str(AC[-1]) if AC[-1]!=-1 else 'なし'))
                         break
                     await channel.send('ID:{}  title:{}  diff:{}'.format(Problem[0],Problem[1],Problem[2] if Problem[2]!=-1 else 'なし'))
