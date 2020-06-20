@@ -7,7 +7,7 @@ from selenium import webdriver
 import chromedriver_binary
 
 # Botのアクセストークン、使用するチャンネルID、ユーザーリスト
-token='NzEyMTYzMzU4Mjg3MzMxNDA5.XsNkqw.eUKp3MB20utMrDoPvzBbQG6n858'
+token='hoge and fuga'
 channel_id=723157402387611748
 #[DiscordID,AtCoderID]で指定。手で追加
 users=[
@@ -17,17 +17,35 @@ users=[
     [462862915209527298,'yi7242']
     ]
 
+
 client = discord.Client()
 
-def ACProblems(id):
-    epochs=int(datetime.datetime.now().timestamp()-86400)
-    AClist=[]
+def ACProblems(id,sec):
+    epochs=int(datetime.datetime.now().timestamp()-sec)
+    tmp=[]
+    AC=[]
     url="https://kenkoooo.com/atcoder/atcoder-api/results?user={}".format(id)
     result=requests.get(url).json()
     for dic in result:
-        if dic['epoch_second']>=epochs:
-            AClist.append(dic["problem_id"])
-    return AClist
+        if dic['epoch_second']>=epochs and dic['result']=='AC':
+            tmp.append(dic["problem_id"])
+    url="https://kenkoooo.com/atcoder/resources/merged-problems.json"
+    Problemlist=requests.get(url).json()
+    url="https://kenkoooo.com/atcoder/resources/problem-models.json"
+    difflist=requests.get(url).json()
+    max_diff=-(10**9)
+    for problem_id in tmp:
+        for dic in Problemlist:
+            if problem_id==dic["id"]:
+                title=dic["title"]
+                diff=-1
+                if problem_id in difflist:
+                    diff=int(difflist[problem_id]["difficulty"])
+                max_diff=max(max_diff,diff)
+                AC.append([problem_id,title,diff])
+                continue
+    AC.append(max_diff)
+    return AC
 
 #起動時
 @client.event
@@ -43,13 +61,24 @@ async def loop():
         channel = client.get_channel(channel_id)
         for person in users:
             user = client.get_user(person[0])
-            AC=ACProblems(person[1])
-            if len(AC)==0:
+            AC=ACProblems(person[1],79200)
+            if len(AC)==1:
                 await channel.send(user.mention+' AtCoderやれ')
+    elif now == '00:00':
+        channel = client.get_channel(channel_id)
+        for person in users:
+            user = client.get_user(person[0])
+            AC=ACProblems(person[1],86400)
+            if len(AC)==1:
+                await channel.send(user.name+'、AtCoderやれって言ったのに...')
             else:
-                await channel.send(user.name+'は以下の{}問解きました、えらい！'.format(len(AC)))
+                await channel.send(user.name+'は以下の{}問を解きました、えらい！'.format(len(AC)-1))
                 for Problem in AC:
-                    await channel.send(Problem)
+                    if Problem==-1:
+                        await channel.send('max_diff:'+(str(AC[-1]) if AC[-1]!=-1 else 'なし'))
+                        break
+                    await channel.send('ID:{}  title:{}  diff:{}'.format(Problem[0],Problem[1],Problem[2] if Problem[2]!=-1 else 'なし'))
+
 
 # Botの起動とDiscordサーバーへの接続
 client.run(token)
