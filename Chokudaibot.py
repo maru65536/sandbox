@@ -1,10 +1,9 @@
 import discord
 from discord.ext import tasks
 import time
+import math
 import datetime
 import requests
-from selenium import webdriver
-import chromedriver_binary
 
 # Botのアクセストークン、使用するチャンネルID、ユーザーリスト
 token='hoge and huga'
@@ -24,6 +23,7 @@ def ACProblems(id,sec):
     epochs=int(datetime.datetime.now().timestamp()-sec)
     tmp=[]
     AC=[]
+    e=math.e
     url="https://kenkoooo.com/atcoder/atcoder-api/results?user={}".format(id)
     result=requests.get(url).json()
     for dic in result:
@@ -41,6 +41,8 @@ def ACProblems(id,sec):
                 diff=-1
                 if problem_id in difflist:
                     diff=int(difflist[problem_id]["difficulty"])
+                if diff<=400 and diff!=-1:
+                    diff=int(400/e**((400-diff)/400))
                 max_diff=max(max_diff,diff)
                 AC.append([problem_id,title,diff])
                 continue
@@ -64,7 +66,7 @@ async def loop():
             AC=ACProblems(person[1],79200)
             if len(AC)==1:
                 await channel.send(user.mention+' AtCoderやれ')
-    elif now == '00:39':
+    elif now == '00:00':
         channel = client.get_channel(channel_id)
         for person in users:
             user = client.get_user(person[0])
@@ -78,7 +80,6 @@ async def loop():
                         await channel.send('max_diff:'+(str(AC[-1]) if AC[-1]!=-1 else 'なし'))
                         break
                     await channel.send('ID:{}  title:{}  diff:{}'.format(Problem[0],Problem[1],Problem[2] if Problem[2]!=-1 else 'なし'))
-
 
 # Botの起動とDiscordサーバーへの接続
 client.run(token)
