@@ -6,7 +6,7 @@ import datetime
 import requests
 
 # Botのアクセストークン、使用するチャンネルID、ユーザーリスト
-token='NzEyMTYzMzU4Mjg3MzMxNDA5.Xu4w9g.hpFHum7btjjjLA0hzoT0S-TFPQk'
+token='hoge and fuga'
 channel_id=723157402387611748
 #[DiscordID,AtCoderID]で指定
 users=[
