@@ -25,7 +25,6 @@ client = discord.Client()
 #JOIの問題である場合、diffが存在しない場合はそれぞれJOI難易度、-1を返す
 #現在の時刻からsec秒前までを取得
 def ACProblems(id,sec):
-    print(id)
     epochs=int(datetime.datetime.now().timestamp()-sec)
     tmp=[]
     AC=[]
