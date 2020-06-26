@@ -16,7 +16,7 @@ users=[
     [488978370164555776,'potex59049','https://img.atcoder.jp/icons/3b54e96dcdb14dc634fd8bed931c63d3.jpg'],
     [462862915209527298,'yi7242','https://img.atcoder.jp/icons/ec72028cf0fd8fdf99d2dcfd0d33bc07.png']
     ]
-colors=[0x808080,0x8b4513,0x008000,0x00ffff,0x0000ff,0xffff00,0xffa500,0xff0000]
+colors=[0x000000,0x808080,0x8b4513,0x008000,0x00ffff,0x0000ff,0xffff00,0xffa500,0xff0000]
 
 client = discord.Client()
 
@@ -25,6 +25,7 @@ client = discord.Client()
 #JOIの問題である場合、diffが存在しない場合はそれぞれJOI難易度、-1を返す
 #現在の時刻からsec秒前までを取得
 def ACProblems(id,sec):
+    print(id)
     epochs=int(datetime.datetime.now().timestamp()-sec)
     tmp=[]
     AC=[]
@@ -33,19 +34,22 @@ def ACProblems(id,sec):
     result=requests.get(url).json()
     for dic in result:
         if dic['epoch_second']>=epochs and dic['result']=='AC':
-            tmp.append([dic["problem_id"],dic["contest_id"]])
+            if [dic["problem_id"],dic["contest_id"]] not in tmp:
+                tmp.append([dic["problem_id"],dic["contest_id"]])
     url="https://kenkoooo.com/atcoder/resources/merged-problems.json"
     Problemlist=requests.get(url).json()
     url="https://kenkoooo.com/atcoder/resources/problem-models.json"
     difflist=requests.get(url).json()
     JOI_dic=json.load(codecs.open('Sandbox/JOI.json', 'r', 'utf-8'))
-    max_diff=-(10**9)
+    max_diff=-1
     for problem_id in tmp:
         for dic in Problemlist:
+            #解いた問題についてProblemlistの該当箇所を見つける
             if problem_id[0]==dic["id"]:
                 title=dic["title"]
                 diff=-1
                 isjoi=(problem_id[1][0:2]=='jo')
+                #難易度を取得
                 if problem_id[0] in difflist:
                     if "difficulty" in difflist[problem_id[0]]:
                         diff=int(difflist[problem_id[0]]["difficulty"])
@@ -53,6 +57,7 @@ def ACProblems(id,sec):
                 if diff<=400 and diff!=-1:
                     diff=int(400/e**((400-diff)/400))
                 max_diff=max(max_diff,diff)
+                #JOI難易度を取得
                 JOI_title=list(title.split())[1]
                 if len(list(title.split()))>2:
                     JOI_title2=list(title.split())[1]+list(title.split())[2]
@@ -63,6 +68,7 @@ def ACProblems(id,sec):
                         diff=JOI_dic[JOI_title2]
                 AC.append([problem_id,title,diff,isjoi])
                 continue
+    #ソート、最高diffを追加して返す
     AC.sort(key=lambda x:(-x[3],x[2]),reverse=True)
     AC.append(max_diff)
     return AC
@@ -99,18 +105,30 @@ async def loop():
         for person in users:
             user = client.get_user(person[0])
             AC=ACProblems(person[1],86400)
+            AC[-1]+=400
+            color=colors[AC[-1]//400]
             if len(AC)==1: #AC数0(ACがmax_difficultyのみ)
-                embed = discord.Embed(title=user.name, description='AtCoderやれって言ったのに...' ,color=0x000000)
+                embed = discord.Embed(title=user.name, description='AtCoderやれって言ったのに...' ,color=color)
                 embed.set_thumbnail(url=person[2])
                 await channel.send(embed=embed)
             else:
-                embed = discord.Embed(title=user.name, description='以下の{}問解きました！えらい！'.format(len(AC)-1) ,color=colors[AC[-1]//400] if AC[-1]!=-1 else colors[0])
+                embed = discord.Embed(title=user.name, description='以下の{}問解きました！えらい！'.format(len(AC)-1) ,color=color)
+                embed.set_thumbnail(url=person[2])
+                i=0
                 for Problem in AC:
+                    if i==25: #一回の投稿は25が限界なので区切る
+                        i=0
+                        await channel.send(embed=embed)
+                        embed = discord.Embed(title=user.name, description='つづき',color=color)
                     if type(Problem) is int: #終端(max_difficulty)なら終了
                         embed.set_thumbnail(url=person[2])
                         await channel.send(embed=embed)
+                        break
                     else:
-                        embed.add_field(name=Problem[0][0],value='{} : {}{}'.format(Problem[1],'JOI難易度' if Problem[3] else 'diff',Problem[2] if Problem[2]!=-1 else 'なし'),inline=0)
+                        index='JOI難易度' if Problem[3] else 'diff'
+                        diff=Problem[2] if Problem[2]!=-1 else 'なし'
+                        embed.add_field(name=Problem[0][0],value='{} : {}{}'.format(Problem[1],index,diff),inline=False)
+                    i+=1
 
 # Botの起動とDiscordサーバーへの接続
 client.run(token)
