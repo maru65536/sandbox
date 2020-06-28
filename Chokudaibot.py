@@ -13,9 +13,9 @@ channel_id=723157402387611748
 users=[
     [414689564318498816,'maru65536','https://img.atcoder.jp/icons/285eb303e7617ede77d1176e1d000ccf.jpg'],
     [640616185137725453,'irisviel','https://img.atcoder.jp/assets/icon/avatar.png'],
+    [462862915209527298,'yi7242','https://img.atcoder.jp/icons/ec72028cf0fd8fdf99d2dcfd0d33bc07.png'],
     [488978370164555776,'potex59049','https://img.atcoder.jp/icons/3b54e96dcdb14dc634fd8bed931c63d3.jpg'],
-    [462862915209527298,'yi7242','https://img.atcoder.jp/icons/ec72028cf0fd8fdf99d2dcfd0d33bc07.png']
-    ]
+]
 colors=[0x000000,0x808080,0x8b4513,0x008000,0x00ffff,0x0000ff,0xffff00,0xffa500,0xff0000]
 
 client = discord.Client()
@@ -56,14 +56,14 @@ def ACProblems(id,sec):
                 if diff<=400 and diff!=-1:
                     diff=int(400/e**((400-diff)/400))
                 max_diff=max(max_diff,diff)
-                #JOI難易度を取得
+                #JOI難易度が存在すれば取得
                 JOI_title=list(title.split())[1]
                 if len(list(title.split()))>2:
                     JOI_title2=list(title.split())[1]+list(title.split())[2]
                 if isjoi:
                     if JOI_title in JOI_dic:
                         diff=JOI_dic[JOI_title]
-                    else:
+                    elif JOI_title2 in JOI_dic:
                         diff=JOI_dic[JOI_title2]
                 AC.append([problem_id,title,diff,isjoi])
                 continue
@@ -129,5 +129,5 @@ async def loop():
                         embed.add_field(name=Problem[0][0],value='{} : {}{}'.format(Problem[1],index,diff),inline=False)
                     i+=1
 
-# Botの起動とDiscordサーバーへの接続
+#Botの起動とDiscordサーバーへの接続
 client.run(token)
