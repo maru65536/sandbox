@@ -16,13 +16,7 @@ a=list(itertools.permutations('うしたぷにきあくん',9))
 
 def usitapu():
     s=a[random.randint(0,len(a)-1)]
-    t=''
-    for i in s:
-        t+=i
-        t+='　'
-    t+='笑'
-    print('ok')
-    api.update_status(t)
+    api.update_status('　'.join(s)+'　笑')
 
 schedule.every(30).minutes.do(usitapu)
 j=0
