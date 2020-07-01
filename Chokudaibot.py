@@ -10,7 +10,7 @@ from selenium.webdriver.chrome.options import Options #アイコン画像取得
 import chromedriver_binary #アイコン画像取得
 
 # Botのアクセストークン、使用するチャンネルID、ユーザーリスト
-token='NzEyMTYzMzU4Mjg3MzMxNDA5.Xu5Ang.fl3s9sXYZjfH2V0G1OFe4ULyaXs'
+token='hoge'
 channel_id=723157402387611748
 #[DiscordID,AtCoderID,画像URL]
 users=[
