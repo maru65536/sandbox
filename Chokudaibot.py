@@ -5,9 +5,12 @@ import datetime #ProblemsAPI利用
 import requests #ProblemsAPI利用
 import json #JOI難易度表読み込み
 import codecs #JOI難易度表読み込み
+from selenium import webdriver #アイコン画像取得
+from selenium.webdriver.chrome.options import Options #アイコン画像取得
+import chromedriver_binary #アイコン画像取得
 
 # Botのアクセストークン、使用するチャンネルID、ユーザーリスト
-token='hoge and huga'
+token='NzEyMTYzMzU4Mjg3MzMxNDA5.Xu5Ang.fl3s9sXYZjfH2V0G1OFe4ULyaXs'
 channel_id=723157402387611748
 #[DiscordID,AtCoderID,画像URL]
 users=[
@@ -72,6 +75,16 @@ def ACProblems(id,sec):
     AC.append(max_diff)
     return AC
 
+def fetch_icon(id):
+    options = Options()
+    options.add_argument('--headless')
+    driver=webdriver.Chrome(options=options)
+    url="https://atcoder.jp/users/{:s}".format(id)
+    driver.get(url)
+    img=driver.find_element_by_class_name('avatar').get_attribute("src")
+    driver.close()
+    return img
+
 #起動時
 @client.event
 async def on_ready():
@@ -88,14 +101,16 @@ async def loop():
         for person in users:
             user = client.get_user(person[0])
             AC=ACProblems(person[1],72000)
+            print(person[1])
             if len(AC)==1:
                 await channel.send(user.mention+' そろそろAtCoderやれ')
     #22時時点で未AC者に再警告
-    elif now == '22:00':
+    elif now == "22:00":
         channel = client.get_channel(channel_id)
         for person in users:
             user = client.get_user(person[0])
             AC=ACProblems(person[1],79200)
+            print(person[1])
             if len(AC)==1:
                 await channel.send(user.mention+' いい加減AtCoderやれ')
     #0時に、前日に解いた問題のリストを投稿
@@ -104,15 +119,16 @@ async def loop():
         for person in users:
             user = client.get_user(person[0])
             AC=ACProblems(person[1],86400)
+            print(person[1])
             AC[-1]+=400
             color=colors[AC[-1]//400]
             if len(AC)==1: #AC数0(ACがmax_difficultyのみ)
                 embed = discord.Embed(title=user.name, description='AtCoderやれって言ったのに...' ,color=color)
-                embed.set_thumbnail(url=person[2])
+                embed.set_thumbnail(url=fetch_icon(person[1]))
                 await channel.send(embed=embed)
             else:
                 embed = discord.Embed(title=user.name, description='以下の{}問解きました！えらい！'.format(len(AC)-1) ,color=color)
-                embed.set_thumbnail(url=person[2])
+                embed.set_thumbnail(url=fetch_icon(person[1]))
                 i=0
                 for Problem in AC:
                     if i==25: #一回の投稿は25が限界なので区切る
@@ -120,7 +136,7 @@ async def loop():
                         await channel.send(embed=embed)
                         embed = discord.Embed(title=user.name, description='つづき',color=color)
                     if type(Problem) is int: #終端(max_difficulty)なら終了
-                        embed.set_thumbnail(url=person[2])
+                        embed.set_thumbnail(url=fetch_icon(person[1]))
                         await channel.send(embed=embed)
                         break
                     else:
