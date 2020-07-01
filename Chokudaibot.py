@@ -14,10 +14,10 @@ token='NzEyMTYzMzU4Mjg3MzMxNDA5.Xu5Ang.fl3s9sXYZjfH2V0G1OFe4ULyaXs'
 channel_id=723157402387611748
 #[DiscordID,AtCoderID,画像URL]
 users=[
-    [414689564318498816,'maru65536','https://img.atcoder.jp/icons/285eb303e7617ede77d1176e1d000ccf.jpg'],
-    [640616185137725453,'irisviel','https://img.atcoder.jp/assets/icon/avatar.png'],
-    [462862915209527298,'yi7242','https://img.atcoder.jp/icons/ec72028cf0fd8fdf99d2dcfd0d33bc07.png'],
-    [488978370164555776,'potex59049','https://img.atcoder.jp/icons/3b54e96dcdb14dc634fd8bed931c63d3.jpg'],
+    [414689564318498816,'maru65536'],
+    [640616185137725453,'irisviel'],
+    [462862915209527298,'yi7242'],
+    [488978370164555776,'potex59049']
 ]
 colors=[0x000000,0x808080,0x8b4513,0x008000,0x00ffff,0x0000ff,0xffff00,0xffa500,0xff0000]
 
