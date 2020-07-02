@@ -3,22 +3,15 @@ from discord.ext import tasks #ループ処理実行
 import math #diff補正
 import datetime #ProblemsAPI利用
 import requests #ProblemsAPI利用
-import json #JOI難易度表読み込み
-import codecs #JOI難易度表読み込み
+import json #JOI難易度表読み込み・ユーザー管理
+import codecs #JOI難易度表読み込み・ユーザー管理
 from selenium import webdriver #アイコン画像取得
 from selenium.webdriver.chrome.options import Options #アイコン画像取得
 import chromedriver_binary #アイコン画像取得
 
-# Botのアクセストークン、使用するチャンネルID、ユーザーリスト
 token='hoge'
 channel_id=723157402387611748
-#[DiscordID,AtCoderID]
-users=[
-    [414689564318498816,'maru65536'],
-    [640616185137725453,'irisviel'],
-    [462862915209527298,'yi7242'],
-    [488978370164555776,'potex59049']
-]
+users=json.load(codecs.open('Bots/Chokudai_Users.json', 'r', 'utf-8'))
 colors=[0x000000,0x808080,0x8b4513,0x008000,0x00ffff,0x0000ff,0xffff00,0xffa500,0xff0000]
 
 client = discord.Client()
@@ -42,7 +35,7 @@ def ACProblems(id,sec):
     Problemlist=requests.get(url).json()
     url="https://kenkoooo.com/atcoder/resources/problem-models.json"
     difflist=requests.get(url).json()
-    JOI_dic=json.load(codecs.open('Sandbox/JOI.json', 'r', 'utf-8'))
+    JOI_dic=json.load(codecs.open('Bots/JOI.json', 'r', 'utf-8'))
     max_diff=-1
     for problem_id in tmp:
         for dic in Problemlist:
@@ -75,6 +68,8 @@ def ACProblems(id,sec):
     AC.append(max_diff)
     return AC
 
+#IDからアイコンのURLを取得
+#AtCoderのユーザーページをスクレイピングする
 def fetch_icon(id):
     options = Options()
     options.add_argument('--headless')
@@ -91,33 +86,61 @@ async def on_ready():
     loop.start()
     print('Chokudaibot起動')
 
+# "!chokudai AtcoderID" に反応し、ユーザーリスト更新
+#リストに既に存在する場合は削除
+#操作後、現在の登録者リストを表示
+@client.event
+async def on_message(message):
+    if message.content.startswith('!chokudai'):
+        #エラーで停止するのを防止
+        if len(list(message.content.split()))==1:
+            return
+        ID=message.content.split()[1]
+        #ユーザーリスト読み込み
+        users=json.load(codecs.open('Bots/Chokudai_Users.json', 'r', 'utf-8'))
+        channel=client.get_channel(channel_id)
+        #リストに存在しない場合は追加、既に存在する場合は削除
+        if str(message.author.id) in users:
+            del users[str(message.author.id)]
+            await channel.send("{}さんをリストから削除しました。".format(ID))
+        else:
+            users[message.author.id]=ID
+            await channel.send("{}さんをリストに登録しました。".format(ID))
+        #現在の登録者を表示
+        await channel.send("現在の登録者は以下の{}人です。".format(len(users)))
+        for user in users.items():
+            await channel.send(user[1])
+        #変更を保存
+        with open('Bots/Chokudai_Users.json', 'w') as f:
+            json.dump(users,f,indent=4)
+
+
 # 60秒に一回ループ
 @tasks.loop(seconds=60)
 async def loop():
     now = datetime.datetime.now().strftime('%H:%M')
+    users=json.load(codecs.open('Bots/Chokudai_Users.json', 'r', 'utf-8'))
+    channel = client.get_channel(channel_id)
     #20時時点で未AC者に警告
     if now == '20:00':
-        channel = client.get_channel(channel_id)
-        for person in users:
-            user = client.get_user(person[0])
+        for person in users.items():
+            user = client.get_user(int(person[0]))
             AC=ACProblems(person[1],72000)
             print(person[1])
             if len(AC)==1:
                 await channel.send(user.mention+' そろそろAtCoderやれ')
     #22時時点で未AC者に再警告
     elif now == "22:00":
-        channel = client.get_channel(channel_id)
-        for person in users:
-            user = client.get_user(person[0])
+        for person in users.items():
+            user = client.get_user(int(person[0]))
             AC=ACProblems(person[1],79200)
             print(person[1])
             if len(AC)==1:
                 await channel.send(user.mention+' いい加減AtCoderやれ')
     #0時に、前日に解いた問題のリストを投稿
     elif now == '00:00':
-        channel = client.get_channel(channel_id)
-        for person in users:
-            user = client.get_user(person[0])
+        for person in users.items():
+            user = client.get_user(int(person[0]))
             AC=ACProblems(person[1],86400)
             print(person[1])
             AC[-1]+=400
