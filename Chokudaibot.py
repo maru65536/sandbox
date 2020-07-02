@@ -12,7 +12,7 @@ import chromedriver_binary #アイコン画像取得
 # Botのアクセストークン、使用するチャンネルID、ユーザーリスト
 token='hoge'
 channel_id=723157402387611748
-#[DiscordID,AtCoderID,画像URL]
+#[DiscordID,AtCoderID]
 users=[
     [414689564318498816,'maru65536'],
     [640616185137725453,'irisviel'],
