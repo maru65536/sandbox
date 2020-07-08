@@ -13,8 +13,8 @@ token='hoge'
 channel_id=723157402387611748
 users=json.load(codecs.open('Bots/Chokudai_Users.json', 'r', 'utf-8'))
 colors=[0x000000,0x808080,0x8b4513,0x008000,0x00ffff,0x0000ff,0xffff00,0xffa500,0xff0000]
-
 client = discord.Client()
+debug=0
 
 #AtCoderIDを入れると、ACした問題のリストを返す
 #返り値は[[問題id,タイトル,diff,JOIの問題かどうか]*問題数,maxdiff]の形
@@ -122,7 +122,7 @@ async def loop():
     users=json.load(codecs.open('Bots/Chokudai_Users.json', 'r', 'utf-8'))
     channel = client.get_channel(channel_id)
     #20時時点で未AC者に警告
-    if now == '20:00':
+    if now == '20:00' or debug==1:
         for person in users.items():
             user = client.get_user(int(person[0]))
             AC=ACProblems(person[1],72000)
@@ -130,7 +130,7 @@ async def loop():
             if len(AC)==1:
                 await channel.send(user.mention+' そろそろAtCoderやれ')
     #22時時点で未AC者に再警告
-    elif now == "22:00":
+    elif now == "22:00" or debug==2:
         for person in users.items():
             user = client.get_user(int(person[0]))
             AC=ACProblems(person[1],79200)
@@ -138,7 +138,7 @@ async def loop():
             if len(AC)==1:
                 await channel.send(user.mention+' いい加減AtCoderやれ')
     #0時に、前日に解いた問題のリストを投稿
-    elif now == '00:00':
+    elif now == '00:00' or debug==3:
         for person in users.items():
             user = client.get_user(int(person[0]))
             AC=ACProblems(person[1],86400)
