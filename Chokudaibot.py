@@ -1,5 +1,6 @@
 import discord #discord接続
 from discord.ext import tasks #ループ処理実行
+import os #カレントディレクトリ取得
 import math #diff補正
 import datetime #ProblemsAPI利用
 import requests #ProblemsAPI利用
@@ -9,11 +10,27 @@ from selenium import webdriver #アイコン画像取得
 from selenium.webdriver.chrome.options import Options #アイコン画像取得
 import chromedriver_binary #アイコン画像取得
 
+#各種変数、リストの定義
 token='hoge'
 channel_id=723157402387611748
-users=json.load(codecs.open('Bots/Chokudai_Users.json', 'r', 'utf-8'))
+if os.getcwd()=='C:\\VSCode\\Bots':
+    Chokudaipath='Chokudai_Users.json'
+else:
+    Chokudaipath='Bots\\Chokudai_Users.json'
+if os.getcwd()=='C:\\VSCode\\Bots':
+    JOIpath='JOI.json'
+else:
+    JOIpath='Bots\\JOI.json'
+users=json.load(codecs.open(Chokudaipath, 'r', 'utf-8'))
+url="https://kenkoooo.com/atcoder/resources/merged-problems.json"
+Problemlist=requests.get(url).json()
+url="https://kenkoooo.com/atcoder/resources/problem-models.json"
+difflist=requests.get(url).json()
+JOI_dic=json.load(codecs.open(JOIpath, 'r', 'utf-8'))
 colors=[0x000000,0x808080,0x8b4513,0x008000,0x00ffff,0x0000ff,0xffff00,0xffa500,0xff0000]
 client = discord.Client()
+
+#デバッグ用変数(1,2,3でそれぞれ20時、22時、24時に設定される)
 debug=0
 
 #AtCoderIDを入れると、ACした問題のリストを返す
@@ -31,11 +48,6 @@ def ACProblems(id,sec):
         if dic['epoch_second']>=epochs and dic['result']=='AC':
             if [dic["problem_id"],dic["contest_id"]] not in tmp:
                 tmp.append([dic["problem_id"],dic["contest_id"]])
-    url="https://kenkoooo.com/atcoder/resources/merged-problems.json"
-    Problemlist=requests.get(url).json()
-    url="https://kenkoooo.com/atcoder/resources/problem-models.json"
-    difflist=requests.get(url).json()
-    JOI_dic=json.load(codecs.open('Bots/JOI.json', 'r', 'utf-8'))
     max_diff=-1
     for problem_id in tmp:
         for dic in Problemlist:
@@ -97,7 +109,7 @@ async def on_message(message):
             return
         ID=message.content.split()[1]
         #ユーザーリスト読み込み
-        users=json.load(codecs.open('Bots/Chokudai_Users.json', 'r', 'utf-8'))
+        users=json.load(codecs.open(Chokudaipath, 'r', 'utf-8'))
         channel=client.get_channel(channel_id)
         #リストに存在しない場合は追加、既に存在する場合は削除
         if str(message.author.id) in users:
@@ -111,7 +123,7 @@ async def on_message(message):
         for user in users.items():
             await channel.send(user[1])
         #変更を保存
-        with open('Bots/Chokudai_Users.json', 'w') as f:
+        with open(Chokudaipath, 'w') as f:
             json.dump(users,f,indent=4)
 
 
@@ -119,7 +131,7 @@ async def on_message(message):
 @tasks.loop(seconds=60)
 async def loop():
     now = datetime.datetime.now().strftime('%H:%M')
-    users=json.load(codecs.open('Bots/Chokudai_Users.json', 'r', 'utf-8'))
+    users=json.load(codecs.open(Chokudaipath, 'r', 'utf-8'))
     channel = client.get_channel(channel_id)
     #20時時点で未AC者に警告
     if now == '20:00' or debug==1:
