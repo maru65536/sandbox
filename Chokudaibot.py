@@ -10,13 +10,13 @@ from selenium import webdriver #アイコン画像取得
 from selenium.webdriver.chrome.options import Options #アイコン画像取得
 import chromedriver_binary #アイコン画像取得
 
-#各種変数、リストの定義
+#各種変数の定義
 token='hoge'
 channel_id=723157402387611748
 hour=3600
 colors=[0x000000,0x808080,0x8b4513,0x008000,0x00ffff,0x0000ff,0xffff00,0xffa500,0xff0000]
 client = discord.Client()
-channel = client.get_channel(channel_id)
+
 if os.getcwd()=='C:\\VSCode\\Bots':
     Chokudaipath='Chokudai_Users.json'
 else:
@@ -138,6 +138,7 @@ async def on_message(message):
 @tasks.loop(seconds=60)
 async def loop():
     now = datetime.datetime.now().strftime('%H:%M')
+    channel = client.get_channel(channel_id)
     #1時間ごとに生存報告
     if now[3:]=='00':
         print(now)
