@@ -38,11 +38,11 @@ def base64_decording(s):
         elif st.isupper():
             bit=ord(st)-71
         elif st.isdecimal():
-            bit=int(n+52)
+            bit=int(st)+52
         elif st=='+':
             bit=62
         else:
             bit=63
         return bin(bit)[2:].zfill(6)
+    transrate_d(1)
     #0埋めで発生した0かもともとある0かの判定がつかない　あきらめた
-            
