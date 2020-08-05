@@ -10,13 +10,14 @@ from selenium import webdriver #アイコン画像取得
 from selenium.webdriver.chrome.options import Options #アイコン画像取得
 import chromedriver_binary #アイコン画像取得
 
-#各種変数の定義
-token='hoge'
+#各種、更新の必要がない変数の定義
+token=''
 channel_id=723157402387611748
 hour=3600
 colors=[0x000000,0x808080,0x8b4513,0x008000,0x00ffff,0x0000ff,0xffff00,0xffa500,0xff0000]
 client = discord.Client()
 
+#動かす場所によって相対パスを変える
 if os.getcwd()=='C:\\VSCode\\Bots':
     Chokudaipath='Chokudai_Users.json'
 else:
@@ -26,15 +27,17 @@ if os.getcwd()=='C:\\VSCode\\Bots':
 else:
     JOIpath='Bots\\JOI.json'
 
-#定期的な更新が必要なもの(問題リスト、ユーザー)
+#定期的な更新が必要な変数を定義(問題リスト、ユーザー)
 def init():
-    global users,JOI_dic,Problemlist,difflist
+    global users,JOI_dic,Problemlist,difflist,Contestlist
     users=json.load(codecs.open(Chokudaipath, 'r', 'utf-8'))
     JOI_dic=json.load(codecs.open(JOIpath, 'r', 'utf-8'))
     Problemurl="https://kenkoooo.com/atcoder/resources/merged-problems.json"
     Problemlist=requests.get(Problemurl).json()
     diffurl="https://kenkoooo.com/atcoder/resources/problem-models.json"
     difflist=requests.get(diffurl).json()
+    Contesturl="https://kenkoooo.com/atcoder/resources/contests.json"
+    Contestlist=requests.get(Contesturl).json()
 
 #起動時に初期化
 init()
@@ -98,6 +101,17 @@ def fetch_icon(id):
     driver.close()
     return img
 
+#8時間以内にコンテストが開催されているかを確認
+#もしも開催されていればTrueを返す
+def contestheld():
+    epochs=int(datetime.datetime.now().timestamp()-hour*8)
+    f=False
+    for Contest in Contestlist:
+        if Contest['start_epoch_second']>=epochs:
+            f=True
+            break
+    return f
+
 #起動時
 @client.event
 async def on_ready():
@@ -139,11 +153,10 @@ async def on_message(message):
 async def loop():
     now = datetime.datetime.now().strftime('%H:%M')
     channel = client.get_channel(channel_id)
-    #1時間ごとに生存報告
+    f=contestheld()
+    #1時間ごとに生存報告、リストの初期化
     if now[3:]=='00':
         print(now)
-    #12時に各種リストの更新
-    if now == "12:00":
         init()
     #20時時点で未AC者に警告
     if now == '20:00':
@@ -162,10 +175,11 @@ async def loop():
             if len(AC)==1:
                 await channel.send(user.mention+' いい加減AtCoderやれ')
     #0時に、前日に解いた問題のリストを投稿
-    elif now == '00:00':
+    #コンテストのある日はProblemsのスクレイピングを待って1時に投稿する
+    elif now == "00:00" and not f or now =="01:00" and f:
         for person in users.items():
             user = client.get_user(int(person[0]))
-            AC=ACProblems(person[1],hour*24)
+            AC=ACProblems(person[1],hour*(24+f))
             print(person[1])
             AC[-1]+=400
             color=colors[AC[-1]//400]
@@ -183,7 +197,6 @@ async def loop():
                         await channel.send(embed=embed)
                         embed = discord.Embed(title=user.name, description='つづき',color=color)
                     if type(Problem) is int: #終端(max_difficulty)なら終了
-                        embed.set_thumbnail(url=fetch_icon(person[1]))
                         await channel.send(embed=embed)
                         break
                     else:
