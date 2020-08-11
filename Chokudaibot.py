@@ -11,11 +11,7 @@ from selenium.webdriver.chrome.options import Options #アイコン画像取得
 import chromedriver_binary #アイコン画像取得
 
 #各種、更新の必要がない変数の定義
-<<<<<<< HEAD
 token='hoge'
-=======
-token=''
->>>>>>> 2ea5a3046d8d8c61c7b00cbf53f37187e6b49ded
 channel_id=723157402387611748
 hour=3600
 colors=[0x000000,0x808080,0x8b4513,0x008000,0x00ffff,0x0000ff,0xffff00,0xffa500,0xff0000]
@@ -200,10 +196,7 @@ async def loop():
                         i=0
                         await channel.send(embed=embed)
                         embed = discord.Embed(title=user.name, description='つづき',color=color)
-<<<<<<< HEAD
                         embed.set_thumbnail(url=fetch_icon(person[1]))
-=======
->>>>>>> 2ea5a3046d8d8c61c7b00cbf53f37187e6b49ded
                     if type(Problem) is int: #終端(max_difficulty)なら終了
                         await channel.send(embed=embed)
                         break
