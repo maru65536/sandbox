@@ -19,9 +19,9 @@ client = discord.Client()
 
 #動かす場所によって相対パスを変える
 if os.getcwd()=='C:\\VSCode\\Bots':
-    Chokudaipath='Chokudai_Users.json'
+    Userspath='Chokudai_Users.json'
 else:
-    Chokudaipath='Bots\\Chokudai_Users.json'
+    Userspath='Bots\\Chokudai_Users.json'
 if os.getcwd()=='C:\\VSCode\\Bots':
     JOIpath='JOI.json'
 else:
@@ -30,7 +30,7 @@ else:
 #定期的な更新が必要な変数を定義(問題リスト、ユーザー)
 def init():
     global users,JOI_dic,Problemlist,difflist,Contestlist
-    users=json.load(codecs.open(Chokudaipath, 'r', 'utf-8'))
+    users=json.load(codecs.open(Userspath, 'r', 'utf-8'))
     JOI_dic=json.load(codecs.open(JOIpath, 'r', 'utf-8'))
     Problemurl="https://kenkoooo.com/atcoder/resources/merged-problems.json"
     Problemlist=requests.get(Problemurl).json()
@@ -128,7 +128,7 @@ async def on_message(message):
     #"!chokudai regi (AtCoderID)"でユーザーリストに登録される
     if message.content.startswith('!chokudai regi'):
         #ユーザーリスト・チャンネル読み込み
-        users=json.load(codecs.open(Chokudaipath, 'r', 'utf-8'))
+        users=json.load(codecs.open(Userspath, 'r', 'utf-8'))
         channel=client.get_channel(channel_id)
         #エラーで停止するのを防止
         if len(list(message.content.split()))!=3:
@@ -150,7 +150,7 @@ async def on_message(message):
         for user in users.items():
             await channel.send(user[1])
         #変更を保存
-        with open(Chokudaipath, 'w') as f:
+        with open(Userspath, 'w') as f:
             json.dump(users,f,indent=4)
 
     #指定した人間のAC状況の表示(DMのみ対応)
@@ -195,12 +195,13 @@ async def on_message(message):
                     diff=Problem[2] if Problem[2]!=-1 else 'なし'
                     embed.add_field(name=Problem[0][0],value='{} : {}{}'.format(Problem[1],index,diff),inline=False)
                 i+=1
+    #helpで、現在実装されている命令をすべて表示
     if message.content.startswith('!chokudai help'):
         channel=client.get_channel(channel_id)
         await channel.send('"help" でhelpを表示')
         await channel.send('"!chokudai regi (AtCoderID)"でユーザーリストに登録')
         await channel.send('DMに"!chokudai display (AtCoderID) (hours)"で、指定した人が現在からhours時間以内にACした問題をDMに送信')
-
+        await channel.send('hoursが指定されなかった場合はデフォルトで24時間以内のACを表示する')
 
 # 60秒に一回ループ
 @tasks.loop(seconds=60)
