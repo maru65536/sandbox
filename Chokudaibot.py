@@ -158,11 +158,16 @@ async def on_message(message):
     if message.content.startswith('!chokudai display'):
         channel=client.get_user(message.author.id)
         content=list(message.content.split())
+        l=len(content)
         #エラーで停止するのを防止
-        if len(content)!=4:
+        if l<3 or 4<l:
             await channel.send("error!")
             return
-        ID,sec=content[2],int(float(content[3])*hour)
+        elif l==3:
+            sec=86400
+        else:
+            sec=int(float(content[3])*hour)
+        ID=content[2]
         AC=ACProblems(ID,sec)
         AC[-1]+=400
         color=colors[AC[-1]//400]
