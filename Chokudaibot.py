@@ -17,6 +17,21 @@ hour=3600
 colors=[0x000000,0x808080,0x8b4513,0x008000,0x00ffff,0x0000ff,0xffff00,0xffa500,0xff0000]
 client = discord.Client()
 
+#Problemsクラスの定義
+class problems():
+    def __init__(self):
+        self.l=[]
+    def add_problem(self,ID,title,difficulty,isJOI):
+        self.l.append([ID,title,difficulty,isJOI])
+    def max_difficulty(self):
+        if len(self.l)==0:
+            return -1
+        return max([Problem[2] for Problem in self.l])
+    def ac_list(self):
+        return sorted(self.l,key=lambda x: (x[3],-x[2]))
+    def ac_count(self):
+        return len(self.l)
+
 #動かす場所によって相対パスを変える
 if os.getcwd()=='C:\\VSCode\\Bots':
     Userspath='Chokudai_Users.json'
@@ -47,47 +62,39 @@ init()
 #JOIの問題である場合、diffが存在しない場合はそれぞれJOI難易度、-1を返す
 #現在の時刻からsec秒前までを取得
 def ACProblems(id,sec):
-    epochs=int(datetime.datetime.now().timestamp()-sec)
-    tmp=[]
-    AC=[]
-    e=math.e
+    epochs,p,tmp,e=int(datetime.datetime.now().timestamp()-sec),problems(),[],math.e
     url="https://kenkoooo.com/atcoder/atcoder-api/results?user={}".format(id)
     result=requests.get(url).json()
     for dic in result:
         if dic['epoch_second']>=epochs and dic['result']=='AC':
             if [dic["problem_id"],dic["contest_id"]] not in tmp:
                 tmp.append([dic["problem_id"],dic["contest_id"]])
-    max_diff=-1
-    for problem_id in tmp:
+    #解いた問題について、各データを取得
+    for problem_id,contest_id in tmp:
         for dic in Problemlist:
-            #解いた問題についてProblemlistの該当箇所を見つける
-            if problem_id[0]==dic["id"]:
+            if problem_id==dic["id"]:
                 title=dic["title"]
+                titles=list(title.split())
                 diff=-1
-                isjoi=(problem_id[1][0:2]=='jo')
+                isjoi=(contest_id[1][0:2]=='jo')
                 #難易度を取得
-                if problem_id[0] in difflist:
-                    if "difficulty" in difflist[problem_id[0]]:
-                        diff=int(difflist[problem_id[0]]["difficulty"])
+                if problem_id in difflist:
+                    if "difficulty" in difflist[problem_id]:
+                        diff=int(difflist[problem_id]["difficulty"])
                 #diffがマイナスにならないよう補正
                 if diff<=400 and diff!=-1:
-                    diff=int(400/e**((400-max(diff,-20000)/400)))
-                max_diff=max(max_diff,diff)
+                    diff=int(400/e**((400-diff)/400))
                 #JOI難易度が存在すれば取得
-                JOI_title=list(title.split())[1]
-                if len(list(title.split()))>2:
-                    JOI_title2=list(title.split())[1]+list(title.split())[2]
+                JOI_title=titles[1]
+                if len(titles)>2:
+                    JOI_title2=titles[1]+titles[2]
                 if isjoi:
                     if JOI_title in JOI_dic:
-                        diff=int(JOI_dic[JOI_title])
+                        diff=JOI_dic[JOI_title]
                     elif JOI_title2 in JOI_dic:
-                        diff=int(JOI_dic[JOI_title2])
-                AC.append([problem_id,title,diff,isjoi])
-                continue
-    #ソート、最高diffを追加して返す
-    AC.sort(key=lambda x:(-x[3],x[2]),reverse=True)
-    AC.append(max_diff)
-    return AC
+                        diff=JOI_dic[JOI_title2]
+                p.add_problem(problem_id,title,diff,isjoi)
+    return p
 
 #IDからアイコンのURLを取得
 #AtCoderのユーザーページをスクレイピングする
@@ -120,7 +127,7 @@ def contestheld():
 @client.event
 async def on_ready():
     loop.start()
-    print('Chokudaibot起動')
+    print('ChokudaiBot起動')
 
 @client.event
 async def on_message(message):
@@ -168,33 +175,30 @@ async def on_message(message):
         else:
             sec=int(float(content[3])*hour)
         ID=content[2]
-        AC=ACProblems(ID,sec)
-        AC[-1]+=400
-        color=colors[AC[-1]//400]
+        problems=ACProblems(ID,sec)
+        color=colors[problems.max_difficulty()//400+1]
         icon_url=fetch_icon(ID)
         if icon_url==-1:
             await channel.send('無効なIDです')
-        if len(AC)==1: #AC数0(ACがmax_difficultyのみ)
+        if problems.ac_count()==0: #AC数0の場合
                 embed = discord.Embed(title=ID, description='AtCoderをしていません' ,color=color)
                 embed.set_thumbnail(url=icon_url)
                 await channel.send(embed=embed)
         else:
-            embed = discord.Embed(title=ID, description='以下の{}問解きました！'.format(len(AC)-1) ,color=color)
+            embed = discord.Embed(title=ID, description='以下の{}問解きました！'.format(problems.ac_count()) ,color=color)
             embed.set_thumbnail(url=icon_url)
             i=0
-            for Problem in AC:
+            for Problem in problems.ac_list():
                 if i==25: #一回の投稿は25が限界なので区切る
                     i=0
                     await channel.send(embed=embed)
                     embed = discord.Embed(title=ID, description='つづき',color=color)
-                if type(Problem) is int: #終端(max_difficulty)なら終了
-                    await channel.send(embed=embed)
-                    break
                 else:
                     index='JOI難易度' if Problem[3] else 'diff'
                     diff=Problem[2] if Problem[2]!=-1 else 'なし'
-                    embed.add_field(name=Problem[0][0],value='{} : {}{}'.format(Problem[1],index,diff),inline=False)
+                    embed.add_field(name=Problem[0],value='{} : {}{}'.format(Problem[1],index,diff),inline=False)
                 i+=1
+            await channel.send(embed=embed)
 
     #helpで、現在実装されている命令をすべて表示
     if message.content.startswith('!chokudai help'):
@@ -222,51 +226,45 @@ async def loop():
         init()
     #20時時点で未AC者に警告
     if now == '20:00':
-        for person in users.items():
-            user = client.get_user(int(person[0]))
-            AC=ACProblems(person[1],hour*20)
-            print(person[1])
-            if len(AC)==1:
+        for discord_id,atcoder_id in users.items():
+            user = client.get_user(int(discord_id))
+            problems=ACProblems(atcoder_id,hour*20)
+            if problems.ac_count()==0:
                 await channel.send(user.mention+' そろそろAtCoderやれ')
     #22時時点で未AC者に再警告
     elif now == "22:00":
-        for person in users.items():
-            user = client.get_user(int(person[0]))
-            AC=ACProblems(person[1],hour*22)
-            print(person[1])
-            if len(AC)==1:
+        for discord_id,atcoder_id in users.items():
+            user = client.get_user(int(discord_id))
+            problems=ACProblems(atcoder_id,hour*22)
+            if problems.ac_count()==0:
                 await channel.send(user.mention+' いい加減AtCoderやれ')
     #0時に、前日に解いた問題のリストを投稿
     #コンテストのある日はProblemsのスクレイピングを待って1時に投稿する
     elif now == "00:00" and not f or now =="01:00" and f:
-        for person in users.items():
-            user = client.get_user(int(person[0]))
-            AC=ACProblems(person[1],hour*(24+f))
-            print(person[1])
-            AC[-1]+=400
-            color=colors[AC[-1]//400]
-            icon_url=fetch_icon(person[1])
-            if len(AC)==1: #AC数0(ACがmax_difficultyのみ)
+        for discord_id,atcoder_id in users.items():
+            user = client.get_user(int(discord_id))
+            problems=ACProblems(atcoder_id,hour*(24+f))
+            color=colors[problems.max_difficulty()//400+1]
+            icon_url=fetch_icon(atcoder_id)
+            if problems.ac_count()==0: #AC数0の場合
                 embed = discord.Embed(title=user.name, description='AtCoderやれって言ったのに...' ,color=color)
                 embed.set_thumbnail(url=icon_url)
                 await channel.send(embed=embed)
             else:
-                embed = discord.Embed(title=user.name, description='以下の{}問解きました！えらい！'.format(len(AC)-1) ,color=color)
+                embed = discord.Embed(title=user.name, description='以下の{}問解きました！えらい！'.format(problems.ac_count()) ,color=color)
                 embed.set_thumbnail(url=icon_url)
                 i=0
-                for Problem in AC:
+                for Problem in problems.ac_list():
                     if i==25: #一回の投稿は25が限界なので区切る
                         i=0
                         await channel.send(embed=embed)
                         embed = discord.Embed(title=user.name, description='つづき',color=color)
-                    if type(Problem) is int: #終端(max_difficulty)なら終了
-                        await channel.send(embed=embed)
-                        break
                     else:
                         index='JOI難易度' if Problem[3] else 'diff'
                         diff=Problem[2] if Problem[2]!=-1 else 'なし'
-                        embed.add_field(name=Problem[0][0],value='{} : {}{}'.format(Problem[1],index,diff),inline=False)
+                        embed.add_field(name=Problem[0],value='{} : {}{}'.format(Problem[1],index,diff),inline=False)
                     i+=1
+                await channel.send(embed=embed)
 
 #Botの起動とDiscordサーバーへの接続
 client.run(token)
