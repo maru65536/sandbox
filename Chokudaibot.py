@@ -195,6 +195,7 @@ async def on_message(message):
                     diff=Problem[2] if Problem[2]!=-1 else 'なし'
                     embed.add_field(name=Problem[0][0],value='{} : {}{}'.format(Problem[1],index,diff),inline=False)
                 i+=1
+
     #helpで、現在実装されている命令をすべて表示
     if message.content.startswith('!chokudai help'):
         channel=client.get_channel(channel_id)
@@ -203,6 +204,12 @@ async def on_message(message):
         await channel.send('DMに"!chokudai display (AtCoderID) (hours)"で、指定した人が現在からhours時間以内にACした問題をDMに送信')
         await channel.send('hoursが指定されなかった場合はデフォルトで24時間以内のACを表示する')
 
+    #隠しコマンド、bibleで例のツイートを表示
+    if message.content.startswith('!chokudai bible'):
+        channel=client.get_channel(channel_id)
+        await channel.send('だから慶應は学歴自慢じゃないっつーの。')
+        await channel.send('慶應という学歴が俺を高めるんじゃない。俺という存在が慶應という学歴の価値を高めるんだよ。')
+    
 # 60秒に一回ループ
 @tasks.loop(seconds=60)
 async def loop():
