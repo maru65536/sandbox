@@ -13,7 +13,7 @@ import chromedriver_binary #アイコン画像取得
 
 
 #各種、更新の必要がない変数の定義
-token='NzEyMTYzMzU4Mjg3MzMxNDA5.XsNjzw.R98hL2QM3-O4CDHC63v4wJit4FU'
+token='hoge'
 channel_id=723157402387611748
 hour=3600
 colors=[0x000000,0x808080,0x8b4513,0x008000,0x00ffff,0x0000ff,0xffff00,0xffa500,0xff0000]
