@@ -29,9 +29,10 @@ class problems():
         self.l.append([ID,title,difficulty,isJOI])
 
     def max_difficulty(self):
-        if len(self.l)==0:
+        self.diffs=[Problem[2] for Problem in self.l if not Problem[3]]
+        if len(self.diffs)==0:
             return -1
-        return max([Problem[2] for Problem in self.l])
+        return max(self.diffs)
 
     def ac_list(self):
         return sorted(self.l,key=lambda x: (x[3],-x[2]))
@@ -83,7 +84,7 @@ def ACProblems(id,sec):
                 title=dic["title"]
                 titles=list(title.split())
                 diff=-1
-                isjoi=(contest_id[1][0:2]=='jo')
+                isjoi=(contest_id[0:2]=='jo')
                 #難易度を取得
                 if problem_id in difflist:
                     if "difficulty" in difflist[problem_id]:
@@ -121,6 +122,7 @@ def fetch_icon(id):
         return -1
 
 
+#実装する！(素振り)
 def Current_Streak(id):
     pass
 
@@ -140,7 +142,7 @@ def contestheld():
 #起動時
 @client.event
 async def on_ready():
-    print('起動')
+    print('Chokudai起床')
     init()
     loop.start()
 
@@ -204,15 +206,14 @@ async def on_message(message):
             embed = discord.Embed(title=ID, description='以下の{}問解きました！'.format(problems.ac_count()) ,color=color)
             embed.set_thumbnail(url=icon_url)
             i=0
-            for Problem in problems.ac_list():
+            for ID,title,difficulty,isJOI in problems.ac_list():
                 if i==25: #一回の投稿は25が限界なので区切る
                     i=0
                     await channel.send(embed=embed)
-                    embed = discord.Embed(title=ID, description='つづき',color=color)
-                else:
-                    index='JOI難易度' if Problem[3] else 'diff'
-                    diff=Problem[2] if Problem[2]!=-1 else 'なし'
-                    embed.add_field(name=Problem[0],value='{} : {}{}'.format(Problem[1],index,diff),inline=False)
+                    embed = discord.Embed(title=user.name, description='つづき',color=color)
+                index='JOI難易度' if isJOI else 'diff'
+                diff=difficulty if difficulty!=-1 else 'なし'
+                embed.add_field(name=ID,value='{} : {}{}'.format(title,index,diff),inline=False)
                 i+=1
             await channel.send(embed=embed)
 
@@ -229,6 +230,7 @@ async def on_message(message):
         channel=client.get_channel(channel_id)
         await channel.send('だから慶應は学歴自慢じゃないっつーの。')
         await channel.send('慶應という学歴が俺を高めるんじゃない。俺という存在が慶應という学歴の価値を高めるんだよ。')
+        await channel.send('https://twitter.com/chokudai/status/680773059410702337')
 
 
 # 60秒に一回ループ
@@ -242,7 +244,7 @@ async def loop():
         print(now)
         init()
     #20時時点で未AC者に警告
-    if now == '20:00':
+    if now == "20:00":
         for discord_id,atcoder_id in users.items():
             user = client.get_user(int(discord_id))
             problems=ACProblems(atcoder_id,hour*20)
@@ -271,15 +273,14 @@ async def loop():
                 embed = discord.Embed(title=user.name, description='以下の{}問解きました！えらい！'.format(problems.ac_count()) ,color=color)
                 embed.set_thumbnail(url=icon_url)
                 i=0
-                for Problem in problems.ac_list():
+                for ID,title,difficulty,isJOI in problems.ac_list():
                     if i==25: #一回の投稿は25が限界なので区切る
                         i=0
                         await channel.send(embed=embed)
                         embed = discord.Embed(title=user.name, description='つづき',color=color)
-                    else:
-                        index='JOI難易度' if Problem[3] else 'diff'
-                        diff=Problem[2] if Problem[2]!=-1 else 'なし'
-                        embed.add_field(name=Problem[0],value='{} : {}{}'.format(Problem[1],index,diff),inline=False)
+                    index='JOI難易度' if isJOI else 'diff'
+                    diff=difficulty if difficulty!=-1 else 'なし'
+                    embed.add_field(name=ID,value='{} : {}{}'.format(title,index,diff),inline=False)
                     i+=1
                 await channel.send(embed=embed)
 
