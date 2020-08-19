@@ -1,36 +1,44 @@
-import discord #discord接続
-from discord.ext import tasks #ループ処理実行
 import os #カレントディレクトリ取得
-import math #diff補正
-import datetime #ProblemsAPI利用
-import requests #ProblemsAPI利用
+from math import e #diff補正
+import datetime #ProblemsAPI用の時刻取得
 import json #JOI難易度表読み込み・ユーザー管理
 import codecs #JOI難易度表読み込み・ユーザー管理
+
+import discord #discord接続
+from discord.ext import tasks #ループ処理実行
+import requests #ProblemsAPI利用
 from selenium import webdriver #アイコン画像取得
 from selenium.webdriver.chrome.options import Options #アイコン画像取得
 import chromedriver_binary #アイコン画像取得
 
+
 #各種、更新の必要がない変数の定義
-token='hoge'
+token='NzEyMTYzMzU4Mjg3MzMxNDA5.XsNjzw.R98hL2QM3-O4CDHC63v4wJit4FU'
 channel_id=723157402387611748
 hour=3600
 colors=[0x000000,0x808080,0x8b4513,0x008000,0x00ffff,0x0000ff,0xffff00,0xffa500,0xff0000]
 client = discord.Client()
 
+
 #Problemsクラスの定義
 class problems():
     def __init__(self):
         self.l=[]
+
     def add_problem(self,ID,title,difficulty,isJOI):
         self.l.append([ID,title,difficulty,isJOI])
+
     def max_difficulty(self):
         if len(self.l)==0:
             return -1
         return max([Problem[2] for Problem in self.l])
+
     def ac_list(self):
         return sorted(self.l,key=lambda x: (x[3],-x[2]))
+
     def ac_count(self):
         return len(self.l)
+
 
 #動かす場所によって相対パスを変える
 if os.getcwd()=='C:\\VSCode\\Bots':
@@ -41,6 +49,7 @@ if os.getcwd()=='C:\\VSCode\\Bots':
     JOIpath='JOI.json'
 else:
     JOIpath='Bots\\JOI.json'
+
 
 #定期的な更新が必要な変数を定義(問題リスト、ユーザー)
 def init():
@@ -54,15 +63,13 @@ def init():
     Contesturl="https://kenkoooo.com/atcoder/resources/contests.json"
     Contestlist=requests.get(Contesturl).json()
 
-#起動時に初期化
-init()
 
 #AtCoderIDを入れると、ACした問題のリストを返す
 #返り値は[[問題id,タイトル,diff,JOIの問題かどうか]*問題数,maxdiff]の形
 #JOIの問題である場合、diffが存在しない場合はそれぞれJOI難易度、-1を返す
 #現在の時刻からsec秒前までを取得
 def ACProblems(id,sec):
-    epochs,p,tmp,e=int(datetime.datetime.now().timestamp()-sec),problems(),[],math.e
+    epochs,p,tmp=int(datetime.datetime.now().timestamp()-sec),problems(),[]
     url="https://kenkoooo.com/atcoder/atcoder-api/results?user={}".format(id)
     result=requests.get(url).json()
     for dic in result:
@@ -96,6 +103,7 @@ def ACProblems(id,sec):
                 p.add_problem(problem_id,title,diff,isjoi)
     return p
 
+
 #IDからアイコンのURLを取得
 #AtCoderのユーザーページをスクレイピングする
 #ユーザーが存在しない場合は-1を返す
@@ -112,6 +120,11 @@ def fetch_icon(id):
     except:
         return -1
 
+
+def Current_Streak(id):
+    pass
+
+
 #8時間以内にコンテストが開催されているかを確認
 #もしも開催されていればTrueを返す
 def contestheld():
@@ -123,11 +136,14 @@ def contestheld():
             break
     return f
 
+
 #起動時
 @client.event
 async def on_ready():
+    print('起動')
+    init()
     loop.start()
-    print('ChokudaiBot起動')
+
 
 @client.event
 async def on_message(message):
@@ -166,14 +182,14 @@ async def on_message(message):
         channel=client.get_user(message.author.id)
         content=list(message.content.split())
         l=len(content)
-        #エラーで停止するのを防止
-        if l<3 or 4<l:
-            await channel.send("error!")
-            return
-        elif l==3:
+        #遡る秒数を設定
+        if l==3:
             sec=86400
-        else:
+        elif l==4:
             sec=int(float(content[3])*hour)
+        else:
+            channel.send('Error!')
+            return
         ID=content[2]
         problems=ACProblems(ID,sec)
         color=colors[problems.max_difficulty()//400+1]
@@ -213,7 +229,8 @@ async def on_message(message):
         channel=client.get_channel(channel_id)
         await channel.send('だから慶應は学歴自慢じゃないっつーの。')
         await channel.send('慶應という学歴が俺を高めるんじゃない。俺という存在が慶應という学歴の価値を高めるんだよ。')
-    
+
+
 # 60秒に一回ループ
 @tasks.loop(seconds=60)
 async def loop():
@@ -265,6 +282,7 @@ async def loop():
                         embed.add_field(name=Problem[0],value='{} : {}{}'.format(Problem[1],index,diff),inline=False)
                     i+=1
                 await channel.send(embed=embed)
+
 
 #Botの起動とDiscordサーバーへの接続
 client.run(token)
