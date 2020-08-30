@@ -2,15 +2,15 @@ import io
 from PIL import Image
 from selenium import webdriver
 import chromedriver_binary
-import json, config
+import json
 import tweepy
 from requests_oauthlib import OAuth1Session
 
 #config.pyに入れてね！
-CK = config.CONSUMER_KEY
-CS = config.CONSUMER_SECRET
-AT = config.ACCESS_TOKEN
-ATS = config.ACCESS_TOKEN_SECRET
+CK = 'hoge'
+CS = 'fuga'
+AT = 'piyo'
+ATS = 'usi'
 
 auth = tweepy.OAuthHandler(CK, CS)
 auth.set_access_token(AT, ATS)
