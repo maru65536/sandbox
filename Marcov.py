@@ -1,9 +1,12 @@
-import tweepy
 import json
-import MeCab
+import os
 import re
 import random
+
+import tweepy
+import MeCab
 from requests_oauthlib import OAuth1Session
+
 
 CK = "hoge"
 CS = "fuga"
@@ -13,17 +16,27 @@ auth = tweepy.OAuthHandler(CK, CS)
 auth.set_access_token(AT, ATS)
 api = tweepy.API(auth)
 
+#userのツイートを取得し、ツイートID:ツイート内容　という形のdictを作成します。
+#dictは既定の場所にJSONとして保存されます。
 def tweet_fetch(user):
+    #JSONファイルが存在しなかったら自動生成、存在した場合は読み込み
     tweetpath='Sandbox\\{}.json'.format(user)
-    a=json.load(open(tweetpath,'r',encoding='UTF-8'))
+    if os.path.exists(tweetpath):
+        a=json.load(open(tweetpath,'r',encoding='UTF-8'))
+    else:
+        a={}
     for tweet in [tweet for tweet in tweepy.Cursor(api.user_timeline,id=user).items()][::-1]:
         a[str(tweet.id)]=tweet.text.replace('\n',' ')
     with open(tweetpath,'w',encoding='UTF-8') as f:
         json.dump(a,f,indent=4,ensure_ascii=0)
 
 
+#userのツイートからsを含むものを抽出します。
+#urlsをTrueにすると、投稿のURLも同時に出力します。
 def tweet_search(user,s,urls=False):
     tweetpath='Sandbox\\{}.json'.format(user)
+    if os.path.exists(tweetpath):
+        tweet_fetch(user)
     tweets=json.load(open(tweetpath,'r',encoding='UTF-8'))
     tweetlist=list(tweets.items())
     for tweet in tweets.values():
@@ -35,7 +48,7 @@ def tweet_search(user,s,urls=False):
                 print()
 
 
-def Markov_dic_maker(user):
+def Markov_dic_maker(user,n): #userのn階マルコフ連鎖の辞書を作成し,JSON形式で保存します。
     tweets,Markov_dic=[],{}
     #形態素解析可能な形にする
     for tweet in [tweet for tweet in tweepy.Cursor(api.user_timeline,id=user).items()][::-1]:
@@ -50,29 +63,36 @@ def Markov_dic_maker(user):
     for tweet in tweets:
         lines = MeCab.Tagger('Owakati').parse(tweet).split('\n')
         items = list((re.split('[\t]',line)[0] for line in lines))
-        for i in range(len(items)-2):
-            if items[i] in Markov_dic:
-                Markov_dic[items[i]].append(items[i+1])
+        for i in range(n,len(items)-1):
+            tmp=','.join(items[i-n:i])
+            if tmp in Markov_dic:
+                Markov_dic[tmp].append(items[i])
             else:
-                Markov_dic[items[i]]=[items[i+1]]
+                Markov_dic[tmp]=[items[i]]
     #保存
-    with open('Sandbox\\{}mdic.json'.format(user),'w',encoding='UTF-8') as f:
+    with open('Sandbox\\{}m{}dic.json'.format(user,n),'w',encoding='UTF-8') as f:
         json.dump(Markov_dic,f,indent=4,ensure_ascii=0)
 
 
-def Markov_tweet(user,number=10,first_word=False):
-    Markovpath='Sandbox\\{}mdic.json'.format(user)
+#n階マルコフ連鎖で文章を生成します。
+#user(twitterID)、階数を指定してください。
+#first_wordsを指定する場合は、階数と同じだけのstrを含むlistで渡してください。
+def Markov_tweet(user,n,number=10,first_words=False):
+    Markovpath='Sandbox\\{}m{}dic.json'.format(user,n)
+    if not os.path.exists(Markovpath):
+        Markov_dic_maker(user,n)
     Markov_dic=json.load(open(Markovpath,'r',encoding='UTF-8'))
     Markov_key=list(Markov_dic.keys())
-    if first_word and first_word not in Markov_key:
+    #不正なfirst_wordsを除く
+    if first_words and ','.join(first_words) not in Markov_key:
         print('error')
         exit()
     for _ in range(number):
-        if not first_word:
-            t=random.choice(Markov_key)
+        if not first_words:
+            t=list(random.choice(Markov_key).split(','))
         else:
-            t=first_word
-        while t!='EOS':
-            print(t,end='')
-            t=random.choice(Markov_dic[t])
-        print('\n')
+            t=first_words[:]
+        while t[-1]!='EOS' and ','.join(t[-n:]) in Markov_dic:
+            tmp=t[-n:]
+            t.append(random.choice(Markov_dic[','.join(tmp)]))
+        print(*t[:-1],sep='',end='\n\n')
