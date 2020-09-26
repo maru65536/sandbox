@@ -1,9 +1,11 @@
-import os #カレントディレクトリ取得
-from math import e #diff補正
+import codecs #JOI難易度表読み込み・ユーザー管理
 import datetime #ProblemsAPI用の時刻取得
 import json #JOI難易度表読み込み・ユーザー管理
-import codecs #JOI難易度表読み込み・ユーザー管理
+from math import e #diff補正
+import os #カレントディレクトリ取得
 
+import bs4 #コード取得
+import chromedriver_binary #アイコン画像取得
 import discord #discord接続
 from discord.ext import tasks #ループ処理実行
 import requests #ProblemsAPI利用
@@ -20,13 +22,12 @@ colors=[0x000000,0x808080,0x8b4513,0x008000,0x00ffff,0x0000ff,0xffff00,0xffa500,
 client = discord.Client()
 
 
-#Problemsクラスの定義
 class problems():
     def __init__(self):
         self.l=[]
 
-    def add_problem(self,ID,title,difficulty,isJOI):
-        self.l.append([ID,title,difficulty,isJOI])
+    def add_problem(self,ID,title,difficulty,isJOI,submit_id):
+        self.l.append([ID,title,difficulty,isJOI,submit_id])
 
     def max_difficulty(self):
         self.diffs=[Problem[2] for Problem in self.l if not Problem[3]]
@@ -76,9 +77,9 @@ def ACProblems(id,sec):
     for dic in result:
         if dic['epoch_second']>=epochs and dic['result']=='AC':
             if [dic["problem_id"],dic["contest_id"]] not in tmp:
-                tmp.append([dic["problem_id"],dic["contest_id"]])
+                tmp.append([dic["problem_id"],dic["contest_id"],dic['id']])
     #解いた問題について、各データを取得
-    for problem_id,contest_id in tmp:
+    for problem_id,contest_id,submit_id in tmp:
         for dic in Problemlist:
             if problem_id==dic["id"]:
                 title=dic["title"]
@@ -98,10 +99,10 @@ def ACProblems(id,sec):
                     JOI_title2=titles[1]+titles[2]
                 if isjoi:
                     if JOI_title in JOI_dic:
-                        diff=JOI_dic[JOI_title]
+                        diff=int(JOI_dic[JOI_title])
                     elif JOI_title2 in JOI_dic:
-                        diff=JOI_dic[JOI_title2]
-                p.add_problem(problem_id,title,diff,isjoi)
+                        diff=int(JOI_dic[JOI_title2])
+                p.add_problem(problem_id,title,diff,isjoi,submit_id)
     return p
 
 
@@ -127,22 +128,10 @@ def Current_Streak(id):
     pass
 
 
-#8時間以内にコンテストが開催されているかを確認
-#もしも開催されていればTrueを返す
-def contestheld():
-    epochs=int(datetime.datetime.now().timestamp()-hour*8)
-    f=False
-    for Contest in Contestlist:
-        if Contest['start_epoch_second']>=epochs:
-            f=True
-            break
-    return f
-
-
 #起動時
 @client.event
 async def on_ready():
-    print('Chokudai起床')
+    print('Chokudai OK')
     init()
     loop.start()
 
@@ -151,6 +140,7 @@ async def on_ready():
 async def on_message(message):
     #ユーザー登録・登録解除
     #"!chokudai regi (AtCoderID)"でユーザーリストに登録される
+    #ユーザーリストに既に存在しない場合は削除される
     if message.content.startswith('!chokudai regi'):
         #ユーザーリスト・チャンネル読み込み
         users=json.load(codecs.open(Userspath, 'r', 'utf-8'))
@@ -206,7 +196,7 @@ async def on_message(message):
             embed = discord.Embed(title=ID, description='以下の{}問解きました！'.format(problems.ac_count()) ,color=color)
             embed.set_thumbnail(url=icon_url)
             i=0
-            for ID,title,difficulty,isJOI in problems.ac_list():
+            for ID,title,difficulty,isJOI,_ in problems.ac_list():
                 if i==25: #一回の投稿は25が限界なので区切る
                     i=0
                     await channel.send(embed=embed)
@@ -222,6 +212,7 @@ async def on_message(message):
         channel=client.get_channel(channel_id)
         await channel.send('"help" でhelpを表示')
         await channel.send('"!chokudai regi (AtCoderID)"でユーザーリストに登録')
+        await channel.send('ユーザーリストに既に存在しない場合は削除される')
         await channel.send('DMに"!chokudai display (AtCoderID) (hours)"で、指定した人が現在からhours時間以内にACした問題をDMに送信')
         await channel.send('hoursが指定されなかった場合はデフォルトで24時間以内のACを表示する')
 
@@ -238,7 +229,6 @@ async def on_message(message):
 async def loop():
     now = datetime.datetime.now().strftime('%H:%M')
     channel = client.get_channel(channel_id)
-    f=contestheld()
     #1時間ごとに生存報告、リストの初期化
     if now[3:]=='00':
         print(now)
@@ -259,10 +249,10 @@ async def loop():
                 await channel.send(user.mention+' いい加減AtCoderやれ')
     #0時に、前日に解いた問題のリストを投稿
     #コンテストのある日はProblemsのスクレイピングを待って1時に投稿する
-    elif now == "00:00" and not f or now =="01:00" and f:
+    elif now == "00:00":
         for discord_id,atcoder_id in users.items():
             user = client.get_user(int(discord_id))
-            problems=ACProblems(atcoder_id,hour*(24+f))
+            problems=ACProblems(atcoder_id,hour*(24))
             color=colors[problems.max_difficulty()//400+1]
             icon_url=fetch_icon(atcoder_id)
             if problems.ac_count()==0: #AC数0の場合
@@ -273,7 +263,7 @@ async def loop():
                 embed = discord.Embed(title=user.name, description='以下の{}問解きました！えらい！'.format(problems.ac_count()) ,color=color)
                 embed.set_thumbnail(url=icon_url)
                 i=0
-                for ID,title,difficulty,isJOI in problems.ac_list():
+                for ID,title,difficulty,isJOI,_ in problems.ac_list():
                     if i==25: #一回の投稿は25が限界なので区切る
                         i=0
                         await channel.send(embed=embed)
@@ -283,6 +273,24 @@ async def loop():
                     embed.add_field(name=ID,value='{} : {}{}'.format(title,index,diff),inline=False)
                     i+=1
                 await channel.send(embed=embed)
+        channel=client.get_user(414689564318498816)
+        for ID,title,difficulty,isJOI,submit_id in ACProblems('mdk_51',86400).ac_list():
+            index='JOI難易度' if isJOI else 'diff'
+            diff=difficulty if difficulty!=-1 else 'なし'
+            ID=list(ID.split('_'))
+            if ID[0][:2]=='jo':
+                ID=ID[0]+ID[1]
+            else:
+                ID=ID[0]
+            url='https://atcoder.jp/contests/{}/submissions/{}'.format(ID,submit_id)
+            res=requests.get(url)
+            soup=bs4.BeautifulSoup(res.text,'html.parser')
+            code=list(soup.find(id='submission-code').get_text().split('\n'))
+            count=(len(code)-1)//10+1
+            await channel.send('{} : {}{}'.format(title,index,diff))
+            await channel.send(url)
+            for i in range(count):
+                await channel.send('```C++\n'+''.join(code[i*10:min(i*10+10,len(code))])+'```')
 
 
 #Botの起動とDiscordサーバーへの接続
